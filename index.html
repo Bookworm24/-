@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f4efe5" id="metaTheme">
+<meta name="description" content="一个纸感手账风的任务提醒工具：支持每日/每周/每月重复任务、优先级、截止提醒，数据只存在本地。">
+<title>每日待办 · 手账风任务提醒</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23d6492b'/%3E%3Cpath d='M30 52l14 14 26-30' stroke='%23fffcf5' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+  /* 提前读取主题，避免刷新闪烁 */
+  try {
+    var saved = JSON.parse(localStorage.getItem('flowtask.v2') || 'null');
+    if (saved && saved.theme) document.documentElement.dataset.theme = saved.theme;
+  } catch (e) { /* ignore */ }
+</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 顶栏 -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>每日待办</h1>
+        <p id="dateLabel">—</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
+        <input type="search" id="searchInput" placeholder="搜索任务…（按 / 聚焦）" autocomplete="off">
+      </label>
+      <button class="icon-btn" id="notifyBtn" title="开启到期通知">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 20a2 2 0 01-3.4 0"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="切换深浅主题">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- 侧边栏（手机端为底部抽屉） -->
+  <aside class="sidebar" id="sidebar">
+    <div class="drawer-head">
+      <span>筛选与统计</span>
+      <button class="icon-btn" id="drawerClose" title="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <section class="card progress-card">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="ring-center"><b id="ringPct">0%</b><span>完成率</span></div>
+      </div>
+      <p class="progress-text" id="progressText">还没有任务，开始添加吧</p>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title"><i>01</i>近 7 天完成</h3>
+      <div class="week-chart" id="weekChart"></div>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title"><i>02</i>分类筛选</h3>
+      <div class="chip-group" id="categoryChips"></div>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title"><i>03</i>优先级筛选</h3>
+      <div class="chip-group" id="priorityChips"></div>
+    </section>
+  </aside>
+
+  <!-- 主内容 -->
+  <main class="content">
+    <div class="status-bar">
+      <div class="status-chips" id="statusChips">
+        <button class="chip" data-filter="all">全部<b class="chip-count"></b></button>
+        <button class="chip" data-filter="active">进行中<b class="chip-count"></b></button>
+        <button class="chip" data-filter="completed">已完成<b class="chip-count"></b></button>
+        <button class="chip" data-filter="overdue">已逾期<b class="chip-count"></b></button>
+      </div>
+      <button class="icon-btn filter-toggle" id="filterToggle" title="筛选与统计">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h8M18 7h2M4 17h2M12 17h8"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
+      </button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card" data-accent="ink">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">总任务</div>
+      </div>
+      <div class="stat-card" data-accent="blue">
+        <div class="stat-num" id="statActive">0</div>
+        <div class="stat-label">进行中</div>
+      </div>
+      <div class="stat-card" data-accent="green">
+        <div class="stat-num" id="statDone">0</div>
+        <div class="stat-label">已完成</div>
+      </div>
+      <div class="stat-card" data-accent="red">
+        <div class="stat-num" id="statOverdue">0</div>
+        <div class="stat-label">已逾期</div>
+      </div>
+    </div>
+
+    <div class="alert-banner" id="alertBanner"></div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="result-info" id="resultInfo">共 0 个任务</span>
+        <span class="kbd-hint">按 <kbd>N</kbd> 新建 · <kbd>/</kbd> 搜索</span>
+      </div>
+      <div class="toolbar-right">
+        <select id="sortSelect" title="排序方式">
+          <option value="newest">最新创建</option>
+          <option value="due">截止时间最近</option>
+          <option value="priority">优先级从高到低</option>
+        </select>
+        <button class="ghost-btn" id="clearCompletedBtn">清除已完成</button>
+      </div>
+    </div>
+
+    <section class="task-list" id="taskList"></section>
+  </main>
+</div>
+
+<!-- 新建按钮 -->
+<button class="fab" id="fabBtn">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  <span class="fab-text">新建任务</span>
+</button>
+
+<!-- 新建 / 编辑弹窗 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 id="modalTitle">新建任务</h2>
+      <button class="icon-btn" id="modalClose" title="关闭（Esc）">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <form id="taskForm" novalidate>
+      <div class="field">
+        <label for="titleInput">任务标题 <em>*</em></label>
+        <input id="titleInput" type="text" maxlength="60" placeholder="想完成什么？例如：背 30 个单词" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="descInput">描述 <span class="opt">可选</span></label>
+        <textarea id="descInput" maxlength="300" rows="3" placeholder="补充细节、备注…"></textarea>
+      </div>
+      <div class="field">
+        <label>优先级</label>
+        <div class="seg" id="prioritySeg">
+          <button type="button" data-priority="low">低</button>
+          <button type="button" data-priority="medium" class="active">中</button>
+          <button type="button" data-priority="high">高</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>分类</label>
+        <div class="chip-group" id="categoryPicker"></div>
+      </div>
+      <div class="field">
+        <label>重复</label>
+        <div class="seg seg-4" id="repeatSeg">
+          <button type="button" data-repeat="none" class="active">不重复</button>
+          <button type="button" data-repeat="daily">每天</button>
+          <button type="button" data-repeat="weekly">每周</button>
+          <button type="button" data-repeat="monthly">每月</button>
+        </div>
+        <p class="field-hint" id="repeatHint">完成后不重置</p>
+      </div>
+      <div class="field">
+        <label for="dueInput">截止时间 <span class="opt">可选</span></label>
+        <input id="dueInput" type="datetime-local">
+        <div class="quick-due">
+          <button type="button" data-quick="today">今天 23:59</button>
+          <button type="button" data-quick="tomorrow">明天 23:59</button>
+          <button type="button" data-quick="clear">清除</button>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn ghost" id="cancelBtn">取消</button>
+        <button type="submit" class="btn primary" id="submitBtn">保存任务</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 底部抽屉遮罩（手机端） -->
+<div class="drawer-mask" id="drawerMask"></div>
+<!-- 彩带画布 -->
+<canvas id="confetti"></canvas>
+<!-- 轻提示 -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

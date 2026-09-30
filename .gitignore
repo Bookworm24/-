@@ -1,0 +1,12 @@
+# Python 虚拟环境
+.venv/
+__pycache__/
+*.pyc
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/
