@@ -125,6 +125,18 @@ function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* 忽略存储异常 */ }
 }
 
+/* 检测浏览器是否允许持久化存储（无痕模式 / 禁用 Cookie 时写入会失败） */
+function storageAvailable() {
+  try {
+    const k = '__flowtask_probe__';
+    localStorage.setItem(k, '1');
+    localStorage.removeItem(k);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 /* ---------- 工具函数 ---------- */
 const pad = n => String(n).padStart(2, '0');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1132,6 +1144,11 @@ function init() {
 
   applyTheme(state.theme || 'light');
   els.sortSelect.value = state.prefs.sort || 'newest';
+
+  // 存储不可用（无痕模式/禁用 Cookie）时明确提醒，避免误以为任务已保存
+  if (!storageAvailable()) {
+    setTimeout(() => showToast('当前浏览器无法保存数据（可能是无痕模式或禁用了 Cookie），关闭后任务会丢失', { duration: 9000 }), 1600);
+  }
 
   bindEvents();
   render();

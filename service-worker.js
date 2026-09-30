@@ -5,7 +5,7 @@
    - 静态资源：缓存优先 + 后台静默更新（打开快，新版本自动就位）
    注意：修改 js/css 后如需强制刷新旧缓存，把 CACHE_NAME 版本号 +1
    ========================================================================== */
-const CACHE_NAME = 'daiyidaiban-v1';
+const CACHE_NAME = 'daiyidaiban-v2';
 const PRECACHE = [
   './',
   './index.html',
