@@ -1071,6 +1071,56 @@ select#sortSelect:hover { color: var(--ink); transform: translate(-1px, -1px); b
 }
 .toast-action:hover { background: rgba(214, 73, 43, .18); }
 
+/* ---------- 安装到桌面提示条（PWA） ---------- */
+.install-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 10px 9px 16px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: 4px 4px 0 var(--shadow-c);
+  z-index: 120;
+}
+.install-bar[hidden] { display: none; }
+.install-bar p { margin: 0; font-size: 13.5px; color: var(--ink-2); letter-spacing: .3px; }
+.install-btn {
+  padding: 7px 16px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.install-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--shadow-c); }
+.install-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--shadow-c); }
+.install-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color .15s;
+}
+.install-close:hover { color: var(--accent); }
+.install-close svg { width: 14px; height: 14px; }
+
 /* ---------- 彩带画布 ---------- */
 #confetti {
   position: fixed;

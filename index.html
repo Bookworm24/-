@@ -7,6 +7,12 @@
 <meta name="description" content="一个纸感手账风的任务提醒工具：支持每日/每周/每月重复任务、优先级、截止提醒，数据只存在本地。">
 <title>每日待办 · 手账风任务提醒</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23d6492b'/%3E%3Cpath d='M30 52l14 14 26-30' stroke='%23fffcf5' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="每日待办">
 <script>
   /* 提前读取主题，避免刷新闪烁 */
   try {
@@ -198,6 +204,15 @@
       </div>
     </form>
   </div>
+</div>
+
+<!-- 安装到桌面提示条（PWA） -->
+<div class="install-bar" id="installBar" hidden>
+  <p id="installText">安装到桌面，像 App 一样使用</p>
+  <button class="install-btn" id="installBtn">安装</button>
+  <button class="install-close" id="installClose" aria-label="稍后再说">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
 </div>
 
 <!-- 底部抽屉遮罩（手机端） -->

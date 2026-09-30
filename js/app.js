@@ -1056,6 +1056,69 @@ function bindEvents() {
   window.addEventListener('resize', sizeCanvas);
 }
 
+/* ---------- PWA：Service Worker 与安装引导 ---------- */
+let deferredInstall = null;
+
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  if (!/^https?:$/.test(location.protocol)) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .catch(() => { /* 离线能力不可用时静默降级，不打扰用户 */ });
+  });
+}
+
+function setupInstallPrompt() {
+  const bar = $('#installBar');
+  if (!bar) return;
+  const text = $('#installText');
+  const btn = $('#installBtn');
+  const close = $('#installClose');
+  const DISMISS_KEY = 'flowtask.install.dismissed';
+
+  const dismissedRecently = () => {
+    try {
+      const t = Number(localStorage.getItem(DISMISS_KEY) || 0);
+      return t > 0 && Date.now() - t < 7 * 24 * 3600 * 1000; // 关闭后 7 天内不再提示
+    } catch (e) { return false; }
+  };
+  const dismiss = () => {
+    bar.hidden = true;
+    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) { /* ignore */ }
+  };
+
+  // Android / 桌面 Chrome：捕获安装事件，点「安装」拉起系统弹窗
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    if (!dismissedRecently()) bar.hidden = false;
+  });
+
+  // iOS Safari 没有 beforeinstallprompt，给出手动指引
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (isIos && !standalone && !dismissedRecently()) {
+    text.textContent = '点下方「分享」按钮，选「添加到主屏幕」';
+    btn.hidden = true;
+    setTimeout(() => { bar.hidden = false; }, 1600);
+  }
+
+  btn.addEventListener('click', async () => {
+    if (!deferredInstall) return;
+    bar.hidden = true;
+    deferredInstall.prompt();
+    try { await deferredInstall.userChoice; } catch (e) { /* ignore */ }
+    deferredInstall = null;
+  });
+
+  close.addEventListener('click', dismiss);
+
+  window.addEventListener('appinstalled', () => {
+    bar.hidden = true;
+    showToast('已安装到桌面');
+  });
+}
+
 /* ---------- 初始化 ---------- */
 function init() {
   els.dateLabel.textContent = fmtTodayLabel();
@@ -1074,6 +1137,9 @@ function init() {
   render();
   refreshNotifyBtn();
   sizeCanvas();
+
+  registerSW();
+  setupInstallPrompt();
 
   checkDue();
   setInterval(checkDue, 30000);
